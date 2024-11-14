@@ -11,5 +11,19 @@
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
+nav {
+  display: flex;
+  gap: 1rem;
+  
+  a {
+    color: #333;
+    text-decoration: none;
+    
+    &:hover {
+      color: #666;
+    }
+    
+  }
+}
 </style>
