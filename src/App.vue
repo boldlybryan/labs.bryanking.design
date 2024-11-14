@@ -3,10 +3,13 @@
 
 <template>
   <div>
-    <h1>Hello World</h1>
+    <nav style="display: flex; gap: 1rem;">
+      <router-link to="/">Home</router-link>
+    </nav>
+
+    <router-view></router-view>
   </div>
 </template>
 
 <style scoped>
-
 </style>
