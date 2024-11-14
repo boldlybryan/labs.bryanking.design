@@ -58,15 +58,29 @@
             </div>
           </div>
           <div class="serving-adjuster">
-            <label>Serving size: {{ servingSizes[index].toFixed(1) }}x</label>
-            <input 
-              type="range" 
-              v-model.number="servingSizes[index]" 
-              min="0.1" 
-              max="5" 
-              step="0.1"
-              class="serving-slider"
-            >
+            <div class="serving-inputs">
+              <div class="input-group">
+                <label>Servings:</label>
+                <input 
+                  type="number" 
+                  v-model.number="servingSizes[index]"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  class="number-input"
+                />
+              </div>
+              <div class="input-group">
+                <label>Or enter portion:</label>
+                <input 
+                  type="text" 
+                  :value="formatActualPortion(ingredient.assumedPortion, servingSizes[index])"
+                  @change="updatePortion($event, index, ingredient.assumedPortion)"
+                  class="portion-input"
+                  :placeholder="ingredient.assumedPortion"
+                />
+              </div>
+            </div>
           </div>
           <div class="macro-details">
             <p>Calories: {{ Math.round(ingredient.calories * servingSizes[index]) }}</p>
@@ -83,6 +97,11 @@
       <div v-if="parsedMeal.disclaimer" class="disclaimer">
         {{ parsedMeal.disclaimer }}
       </div>
+
+      <hr>
+
+      <pre><code>{{ parsedMeal }}</code></pre>
+
     </div>
   </div>
 </template>
@@ -325,5 +344,29 @@ button:disabled {
 .portion.actual {
   color: #007bff;
   font-weight: 500;
+}
+
+.serving-inputs {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.number-input, .portion-input {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100px;
+}
+
+.input-group label {
+  font-size: 0.9em;
+  color: #666;
 }
 </style>
