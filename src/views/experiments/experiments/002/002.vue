@@ -16,6 +16,20 @@
 
     <div v-if="parsedMeal" class="result-section">
       <h2>Meal Summary</h2>
+      
+      <!-- Assumptions -->
+      <div v-if="parsedMeal.assumptions?.length" class="assumptions-card">
+        <h3>Assumptions Made</h3>
+        <ul>
+          <li v-for="(assumption, index) in parsedMeal.assumptions" 
+              :key="index" 
+              class="assumption">
+            {{ assumption }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Total Nutrition -->
       <div class="total-card">
         <h3>Total Nutrition</h3>
         <div class="macro-details">
@@ -28,12 +42,16 @@
         </div>
       </div>
 
+      <!-- Ingredients Breakdown -->
       <h3>Ingredients Breakdown</h3>
       <div class="meal-details">
         <div v-for="(ingredient, index) in parsedMeal.ingredients" 
              :key="index" 
              class="ingredient-card">
-          <h3>{{ ingredient.name }}</h3>
+          <div class="ingredient-header">
+            <h3>{{ ingredient.name }}</h3>
+            <span class="portion">{{ ingredient.assumedPortion }}</span>
+          </div>
           <div class="macro-details">
             <p>Calories: {{ ingredient.calories }}</p>
             <div class="macros">
@@ -43,6 +61,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div v-if="parsedMeal.disclaimer" class="disclaimer">
+        {{ parsedMeal.disclaimer }}
       </div>
     </div>
   </div>
@@ -86,12 +109,21 @@ const totalMacros = computed(() => {
   }
 })
 
-const systemPrompt = `You are a meal parsing assistant. Convert meal descriptions into structured JSON data with calories and macros.
-Always respond with valid JSON only, following this format:
+const systemPrompt = `You are a meal parsing assistant specializing in nutritional analysis. 
+Your responses are estimates based on typical nutritional values.
+
+When portions aren't specified:
+- Use common serving sizes (e.g., 2oz dry pasta per person)
+- Note assumptions made in the response
+- Request clarification for ambiguous portions
+
+Respond with valid JSON following this format:
 {
+  "assumptions": string[],  // e.g., ["Standard 2oz pasta portion assumed"]
   "ingredients": [
     {
       "name": "string",
+      "assumedPortion": string,  // e.g., "2oz dry (56g)"
       "calories": number,
       "macros": {
         "protein": "string",
@@ -99,7 +131,8 @@ Always respond with valid JSON only, following this format:
         "fat": "string"
       }
     }
-  ]
+  ],
+  "disclaimer": "Nutritional values are estimates and may vary based on specific ingredients and preparation methods."
 }`
 
 const parseMeal = async () => {
@@ -111,10 +144,21 @@ const parseMeal = async () => {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: mealDescription.value }
-      ]
+      ],
+      temperature: 0.3  // Lower temperature for more consistent results
     })
     
-    parsedMeal.value = JSON.parse(response.content)
+    const parsed = JSON.parse(response.content)
+    
+    if (parsed.needsMoreInfo) {
+      // Could either show these as warnings or implement a multi-step input process
+      parsedMeal.value = {
+        ingredients: parsed.ingredients,
+        warnings: parsed.missingInfo
+      }
+    } else {
+      parsedMeal.value = parsed
+    }
   } catch (error) {
     console.error('Failed to parse meal:', error)
   } finally {
