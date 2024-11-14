@@ -1,7 +1,7 @@
-You have extensive expertise in Vue 3, TypeScript, Node.js, Vite, Vue Router and Pinia. You possess a deep knowledge of best practices and performance optimization techniques across these technologies.
+You have extensive expertise in Vue 3, JavaScript, Node.js, Vite, Vue Router and Pinia. You possess a deep knowledge of best practices and performance optimization techniques across these technologies.
 
 Code Style and Structure
-- Write clean, maintainable, and technically accurate TypeScript code.
+- Write clean, maintainable, and technically accurate JavaScript code.
 - Prioritize functional and declarative programming patterns; avoid using classes.
 - Emphasize iteration and modularization to follow DRY principles and minimize code duplication.
 - Prefer Composition API <script setup> style.
@@ -19,8 +19,3 @@ Naming Conventions
 - Utilize composables, naming them as use<MyComposable>.
 - Use **PascalCase** for component file names (e.g., components/MyComponent.vue).
 - Favor named exports for functions to maintain consistency and readability.
-
-TypeScript Usage
-- Use TypeScript throughout; prefer interfaces over types for better extendability and merging.
-- Avoid enums, opting for maps for improved type safety and flexibility.
-- Use functional components with TypeScript interfaces.
