@@ -50,14 +50,30 @@
              class="ingredient-card">
           <div class="ingredient-header">
             <h3>{{ ingredient.name }}</h3>
-            <span class="portion">{{ ingredient.assumedPortion }}</span>
+            <div class="portions">
+              <span class="portion assumed">{{ ingredient.assumedPortion }}</span>
+              <span v-if="servingSizes[index] !== 1" class="portion actual">
+                ({{ formatActualPortion(ingredient.assumedPortion, servingSizes[index]) }})
+              </span>
+            </div>
+          </div>
+          <div class="serving-adjuster">
+            <label>Serving size: {{ servingSizes[index].toFixed(1) }}x</label>
+            <input 
+              type="range" 
+              v-model.number="servingSizes[index]" 
+              min="0.1" 
+              max="5" 
+              step="0.1"
+              class="serving-slider"
+            >
           </div>
           <div class="macro-details">
-            <p>Calories: {{ ingredient.calories }}</p>
+            <p>Calories: {{ Math.round(ingredient.calories * servingSizes[index]) }}</p>
             <div class="macros">
-              <span>Protein: {{ ingredient.macros.protein }}</span>
-              <span>Carbs: {{ ingredient.macros.carbs }}</span>
-              <span>Fat: {{ ingredient.macros.fat }}</span>
+              <span>Protein: {{ Math.round(parseInt(ingredient.macros.protein) * servingSizes[index]) }}g</span>
+              <span>Carbs: {{ Math.round(parseInt(ingredient.macros.carbs) * servingSizes[index]) }}g</span>
+              <span>Fat: {{ Math.round(parseInt(ingredient.macros.fat) * servingSizes[index]) }}g</span>
             </div>
           </div>
         </div>
@@ -78,21 +94,42 @@ import { createChatCompletion } from '@/services/openai'
 const mealDescription = ref('')
 const parsedMeal = ref(null)
 const isLoading = ref(false)
+const servingSizes = ref({}) // Track multipliers for each ingredient
+
+const formatActualPortion = (assumedPortion, multiplier) => {
+  // Extract number and unit from assumed portion (e.g., "2oz dry (56g)" -> [2, "oz"])
+  const match = assumedPortion.match(/(\d+(\.\d+)?)\s*([a-zA-Z]+)/)
+  if (!match) return `${multiplier}x`
+  
+  const [_, amount, __, unit] = match
+  const actualAmount = (parseFloat(amount) * multiplier).toFixed(1)
+  return `${actualAmount}${unit}`
+}
+
+// Initialize serving sizes when meal is parsed
+const initializeServingSizes = (ingredients) => {
+  servingSizes.value = ingredients.reduce((acc, ingredient, index) => {
+    acc[index] = 1
+    return acc
+  }, {})
+}
 
 // Compute totals
 const totalCalories = computed(() => {
   if (!parsedMeal.value) return 0
-  return parsedMeal.value.ingredients.reduce((sum, ingredient) => sum + ingredient.calories, 0)
+  return parsedMeal.value.ingredients.reduce((sum, ingredient, index) => 
+    sum + (ingredient.calories * (servingSizes.value[index] || 1)), 0
+  )
 })
 
 const totalMacros = computed(() => {
   if (!parsedMeal.value) return { protein: '0g', carbs: '0g', fat: '0g' }
   
-  const totals = parsedMeal.value.ingredients.reduce((acc, ingredient) => {
-    // Remove 'g' and convert to number, defaulting to 0 if parsing fails
-    const protein = parseInt(ingredient.macros.protein) || 0
-    const carbs = parseInt(ingredient.macros.carbs) || 0
-    const fat = parseInt(ingredient.macros.fat) || 0
+  const totals = parsedMeal.value.ingredients.reduce((acc, ingredient, index) => {
+    const multiplier = servingSizes.value[index] || 1
+    const protein = (parseInt(ingredient.macros.protein) || 0) * multiplier
+    const carbs = (parseInt(ingredient.macros.carbs) || 0) * multiplier
+    const fat = (parseInt(ingredient.macros.fat) || 0) * multiplier
     
     return {
       protein: acc.protein + protein,
@@ -101,11 +138,10 @@ const totalMacros = computed(() => {
     }
   }, { protein: 0, carbs: 0, fat: 0 })
 
-  // Add 'g' suffix to the final totals
   return {
-    protein: `${totals.protein}g`,
-    carbs: `${totals.carbs}g`,
-    fat: `${totals.fat}g`
+    protein: `${Math.round(totals.protein)}g`,
+    carbs: `${Math.round(totals.carbs)}g`,
+    fat: `${Math.round(totals.fat)}g`
   }
 })
 
@@ -145,20 +181,12 @@ const parseMeal = async () => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: mealDescription.value }
       ],
-      temperature: 0.3  // Lower temperature for more consistent results
+      temperature: 0.3
     })
     
     const parsed = JSON.parse(response.content)
-    
-    if (parsed.needsMoreInfo) {
-      // Could either show these as warnings or implement a multi-step input process
-      parsedMeal.value = {
-        ingredients: parsed.ingredients,
-        warnings: parsed.missingInfo
-      }
-    } else {
-      parsedMeal.value = parsed
-    }
+    parsedMeal.value = parsed
+    initializeServingSizes(parsed.ingredients)
   } catch (error) {
     console.error('Failed to parse meal:', error)
   } finally {
@@ -238,5 +266,64 @@ button:disabled {
   display: flex;
   gap: 16px;
   color: #666;
+}
+
+.serving-adjuster {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.serving-adjuster label {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.serving-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  background: #ddd;
+  border-radius: 2px;
+  outline: none;
+}
+
+.serving-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.serving-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.portions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.portion {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.portion.assumed {
+  font-style: italic;
+}
+
+.portion.actual {
+  color: #007bff;
+  font-weight: 500;
 }
 </style>
