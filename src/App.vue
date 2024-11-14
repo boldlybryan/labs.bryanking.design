@@ -1,10 +1,12 @@
-<script setup lang="ts">
+<script setup>
 </script>
 
 <template>
   <div>
     <nav style="display: flex; gap: 1rem;">
       <router-link to="/">Home</router-link>
+      <router-link to="/about">About</router-link>
+      <router-link to="/experiments">Experiments</router-link>
     </nav>
     <main>
       <router-view></router-view>
