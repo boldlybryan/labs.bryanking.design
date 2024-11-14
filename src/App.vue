@@ -6,8 +6,9 @@
     <nav style="display: flex; gap: 1rem;">
       <router-link to="/">Home</router-link>
     </nav>
-
-    <router-view></router-view>
+    <main>
+      <router-view></router-view>
+    </main>
   </div>
 </template>
 
@@ -15,6 +16,7 @@
 nav {
   display: flex;
   gap: 1rem;
+  padding: 1rem;
   
   a {
     color: #333;
@@ -23,7 +25,9 @@ nav {
     &:hover {
       color: #666;
     }
-    
   }
+}
+main {
+  padding: 1rem;
 }
 </style>
