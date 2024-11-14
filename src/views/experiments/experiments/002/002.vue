@@ -4,14 +4,25 @@
     
     <div class="input-section">
       <h2>Describe Your Meal</h2>
-      <textarea 
-        v-model="mealDescription" 
-        placeholder="Describe your meal (e.g., 'burger with 4oz 80/20 beef, brioche bun, mayo, lettuce')"
-        :disabled="isLoading"
-      ></textarea>
-      <button @click="parseMeal" :disabled="isLoading || !mealDescription.trim()">
-        {{ isLoading ? 'Parsing...' : 'Parse Meal' }}
-      </button>
+      <div class="input-container">
+        <textarea 
+          v-model="mealDescription" 
+          placeholder="Describe your meal (e.g., 'burger with 4oz 80/20 beef, brioche bun, mayo, lettuce')"
+          :disabled="isLoading || isListening"
+        ></textarea>
+        <button 
+          class="mic-button" 
+          @click="isListening ? stopListening() : startListening(handleSpeechInput)"
+          :disabled="isLoading"
+          :class="{ 'listening': isListening }"
+        >
+          <span class="mic-icon">🎤</span>
+          {{ isListening ? 'Stop' : 'Speak' }}
+        </button>
+        <button @click="parseMeal" :disabled="isLoading || !mealDescription.trim() || isListening">
+          {{ isLoading ? 'Parsing...' : 'Enter' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="parsedMeal" class="result-section">
@@ -109,11 +120,14 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { createChatCompletion } from '@/services/openai'
+import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
 
 const mealDescription = ref('')
 const parsedMeal = ref(null)
 const isLoading = ref(false)
 const servingSizes = ref({}) // Track multipliers for each ingredient
+
+const { isListening, error: speechError, startListening, stopListening } = useSpeechRecognition()
 
 const formatActualPortion = (assumedPortion, multiplier) => {
   // Extract number and unit from assumed portion (e.g., "2oz dry (56g)" -> [2, "oz"])
@@ -212,6 +226,10 @@ const parseMeal = async () => {
     isLoading.value = false
   }
 }
+
+const handleSpeechInput = (finalTranscript, interimTranscript) => {
+  mealDescription.value = finalTranscript + (interimTranscript ? ' ' + interimTranscript : '')
+}
 </script>
 
 <style scoped>
@@ -242,6 +260,7 @@ button {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  height: 40px;
 }
 
 button:disabled {
@@ -368,5 +387,33 @@ button:disabled {
 .input-group label {
   font-size: 0.9em;
   color: #666;
+}
+
+.input-container {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.mic-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #28a745;
+}
+
+.mic-button.listening {
+  background: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+.mic-icon {
+  font-size: 1.2em;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 </style>
