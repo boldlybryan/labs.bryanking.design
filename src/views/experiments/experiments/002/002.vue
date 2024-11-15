@@ -1,119 +1,139 @@
 <template>
-  <div class="experiment">
-    <h1>Experiment 002 - Meal Parser</h1>
-    
-    <div class="input-section">
-      <h2>Describe Your Meal</h2>
-      <div class="input-container">
-        <textarea 
-          v-model="mealDescription" 
-          placeholder="Describe your meal (e.g., 'burger with 4oz 80/20 beef, brioche bun, mayo, lettuce')"
-          :disabled="isLoading || isListening"
-        ></textarea>
-        <button 
-          class="mic-button" 
-          @click="isListening ? stopListening() : startListening(handleSpeechInput)"
-          :disabled="isLoading"
-          :class="{ 'listening': isListening }"
-        >
-          <span class="mic-icon">🎤</span>
-          {{ isListening ? 'Stop' : 'Speak' }}
-        </button>
-        <button @click="parseMeal" :disabled="isLoading || !mealDescription.trim() || isListening">
-          {{ isLoading ? 'Parsing...' : 'Enter' }}
-        </button>
-      </div>
-    </div>
-
-    <div v-if="parsedMeal" class="result-section">
-      <h2>Meal Summary</h2>
-      
-      <!-- Assumptions -->
-      <div v-if="parsedMeal.assumptions?.length" class="assumptions-card">
-        <h3>Assumptions Made</h3>
-        <ul>
-          <li v-for="(assumption, index) in parsedMeal.assumptions" 
-              :key="index" 
-              class="assumption">
-            {{ assumption }}
-          </li>
-        </ul>
-      </div>
-
-      <!-- Total Nutrition -->
-      <div class="total-card">
-        <h3>Total Nutrition</h3>
-        <div class="macro-details">
-          <p class="total-calories">Total Calories: {{ totalCalories }}</p>
-          <div class="macros">
-            <span>Total Protein: {{ totalMacros.protein }}</span>
-            <span>Total Carbs: {{ totalMacros.carbs }}</span>
-            <span>Total Fat: {{ totalMacros.fat }}</span>
+  <div class="experiment-layout">
+    <div class="main-content">
+      <div class="experiment">
+        <h1>Experiment 002 - Meal Parser</h1>
+        
+        <div class="input-section">
+          <h2>Describe Your Meal</h2>
+          <div class="input-container">
+            <textarea 
+              v-model="mealDescription" 
+              placeholder="Describe your meal (e.g., 'burger with 4oz 80/20 beef, brioche bun, mayo, lettuce')"
+              :disabled="isLoading || isListening"
+            ></textarea>
+            <button 
+              class="mic-button" 
+              @click="isListening ? stopListening() : startListening(handleSpeechInput)"
+              :disabled="isLoading"
+              :class="{ 'listening': isListening }"
+            >
+              <span class="mic-icon">🎤</span>
+              {{ isListening ? 'Stop' : 'Speak' }}
+            </button>
+            <button @click="parseMeal" :disabled="isLoading || !mealDescription.trim() || isListening">
+              {{ isLoading ? 'Parsing...' : 'Enter' }}
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Ingredients Breakdown -->
-      <h3>Ingredients Breakdown</h3>
-      <div class="meal-details">
-        <div v-for="(ingredient, index) in parsedMeal.ingredients" 
-             :key="index" 
-             class="ingredient-card">
-          <div class="ingredient-header">
-            <h3>{{ ingredient.name }}</h3>
-            <div class="portions">
-              <span class="portion assumed">{{ ingredient.assumedPortion }}</span>
-              <span v-if="servingSizes[index] !== 1" class="portion actual">
-                ({{ formatActualPortion(ingredient.assumedPortion, servingSizes[index]) }})
-              </span>
-            </div>
+        <div v-if="parsedMeal" class="result-section">
+          <h2>Meal Summary</h2>
+          
+          <!-- Assumptions -->
+          <div v-if="parsedMeal.assumptions?.length" class="assumptions-card">
+            <h3>Assumptions Made</h3>
+            <ul>
+              <li v-for="(assumption, index) in parsedMeal.assumptions" 
+                  :key="index" 
+                  class="assumption">
+                {{ assumption }}
+              </li>
+            </ul>
           </div>
-          <div class="serving-adjuster">
-            <div class="serving-inputs">
-              <div class="input-group">
-                <label>Servings:</label>
-                <input 
-                  type="number" 
-                  v-model.number="servingSizes[index]"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
-                  class="number-input"
-                />
-              </div>
-              <div class="input-group">
-                <label>Or enter portion:</label>
-                <input 
-                  type="text" 
-                  :value="formatActualPortion(ingredient.assumedPortion, servingSizes[index])"
-                  @change="updatePortion($event, index, ingredient.assumedPortion)"
-                  class="portion-input"
-                  :placeholder="ingredient.assumedPortion"
-                />
+
+          <!-- Total Nutrition -->
+          <div class="total-card">
+            <h3>Total Nutrition</h3>
+            <div class="macro-details">
+              <p class="total-calories">Total Calories: {{ totalCalories }}</p>
+              <div class="macros">
+                <span>Total Protein: {{ totalMacros.protein }}</span>
+                <span>Total Carbs: {{ totalMacros.carbs }}</span>
+                <span>Total Fat: {{ totalMacros.fat }}</span>
               </div>
             </div>
           </div>
-          <div class="macro-details">
-            <p>Calories: {{ Math.round(ingredient.calories * servingSizes[index]) }}</p>
-            <div class="macros">
-              <span>Protein: {{ Math.round(parseInt(ingredient.macros.protein) * servingSizes[index]) }}g</span>
-              <span>Carbs: {{ Math.round(parseInt(ingredient.macros.carbs) * servingSizes[index]) }}g</span>
-              <span>Fat: {{ Math.round(parseInt(ingredient.macros.fat) * servingSizes[index]) }}g</span>
+
+          <!-- Ingredients Breakdown -->
+          <h3>Ingredients Breakdown</h3>
+          <div class="meal-details">
+            <div v-for="(ingredient, index) in parsedMeal.ingredients" 
+                 :key="index" 
+                 class="ingredient-card">
+              <div class="ingredient-header">
+                <h3>{{ ingredient.name }}</h3>
+                <div class="portions">
+                  <span class="portion assumed">{{ ingredient.assumedPortion }}</span>
+                  <span v-if="servingSizes[index] !== 1" class="portion actual">
+                    ({{ formatActualPortion(ingredient.assumedPortion, servingSizes[index]) }})
+                  </span>
+                </div>
+              </div>
+              <div class="serving-adjuster">
+                <div class="serving-inputs">
+                  <div class="input-group">
+                    <label>Servings:</label>
+                    <input 
+                      type="number" 
+                      v-model.number="servingSizes[index]"
+                      min="0.1"
+                      max="10"
+                      step="0.1"
+                      class="number-input"
+                    />
+                  </div>
+                  <div class="input-group">
+                    <label>Or enter portion:</label>
+                    <input 
+                      type="text" 
+                      :value="formatActualPortion(ingredient.assumedPortion, servingSizes[index])"
+                      @change="updatePortion($event, index, ingredient.assumedPortion)"
+                      class="portion-input"
+                      :placeholder="ingredient.assumedPortion"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="macro-details">
+                <p>Calories: {{ Math.round(ingredient.calories * servingSizes[index]) }}</p>
+                <div class="macros">
+                  <span>Protein: {{ Math.round(parseInt(ingredient.macros.protein) * servingSizes[index]) }}g</span>
+                  <span>Carbs: {{ Math.round(parseInt(ingredient.macros.carbs) * servingSizes[index]) }}g</span>
+                  <span>Fat: {{ Math.round(parseInt(ingredient.macros.fat) * servingSizes[index]) }}g</span>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Disclaimer -->
+          <div v-if="parsedMeal.disclaimer" class="disclaimer">
+            {{ parsedMeal.disclaimer }}
+          </div>
+
+          <hr>
+
+          <pre><code>{{ parsedMeal }}</code></pre>
+
+        </div>
+
+        <div v-if="parsedMeal" class="add-to-meal">
+          <h3>Add to Daily Meals</h3>
+          <div class="meal-controls">
+            <select v-model="selectedMealCategory">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snacks">Snacks</option>
+            </select>
+            <button @click="addToMeals" :disabled="!parsedMeal.ingredients.length">
+              Add to {{ selectedMealCategory }}
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- Disclaimer -->
-      <div v-if="parsedMeal.disclaimer" class="disclaimer">
-        {{ parsedMeal.disclaimer }}
-      </div>
-
-      <hr>
-
-      <pre><code>{{ parsedMeal }}</code></pre>
-
     </div>
+    <MealSummary />
   </div>
 </template>
 
@@ -121,13 +141,17 @@
 import { ref, computed } from 'vue'
 import { createChatCompletion } from '@/services/openai'
 import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
+import { useDailyMeals } from '@/composables/useDailyMeals'
+import MealSummary from '@/components/MealSummary.vue'
 
 const mealDescription = ref('')
 const parsedMeal = ref(null)
 const isLoading = ref(false)
 const servingSizes = ref({}) // Track multipliers for each ingredient
+const selectedMealCategory = ref('breakfast')
 
 const { isListening, error: speechError, startListening, stopListening } = useSpeechRecognition()
+const { addToMeal } = useDailyMeals()
 
 const formatActualPortion = (assumedPortion, multiplier) => {
   // Extract number and unit from assumed portion (e.g., "2oz dry (56g)" -> [2, "oz"])
@@ -230,9 +254,36 @@ const parseMeal = async () => {
 const handleSpeechInput = (finalTranscript, interimTranscript) => {
   mealDescription.value = finalTranscript + (interimTranscript ? ' ' + interimTranscript : '')
 }
+
+const addToMeals = () => {
+  const itemsToAdd = parsedMeal.value.ingredients.map((ingredient, index) => ({
+    ...ingredient,
+    calories: Math.round(ingredient.calories * (servingSizes.value[index] || 1)),
+    macros: {
+      protein: Math.round(parseInt(ingredient.macros.protein) * (servingSizes.value[index] || 1)),
+      carbs: Math.round(parseInt(ingredient.macros.carbs) * (servingSizes.value[index] || 1)),
+      fat: Math.round(parseInt(ingredient.macros.fat) * (servingSizes.value[index] || 1))
+    }
+  }))
+  addToMeal(selectedMealCategory.value, itemsToAdd)
+  parsedMeal.value = null
+  mealDescription.value = ''
+  servingSizes.value = {}
+}
 </script>
 
 <style scoped>
+.experiment-layout {
+  display: flex;
+  margin: -20px;  /* Offset parent padding */
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  max-width: 800px;
+}
+
 .experiment {
   max-width: 800px;
   margin: 0 auto;
@@ -415,5 +466,24 @@ button:disabled {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+.add-to-meal {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.meal-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 </style>
