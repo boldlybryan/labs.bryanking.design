@@ -103,6 +103,9 @@
                   <span>Fat: {{ Math.round(parseInt(ingredient.macros.fat) * servingSizes[index]) }}g</span>
                 </div>
               </div>
+              <span class="data-source" :class="ingredient.source">
+                {{ ingredient.source || 'AI Estimate' }}
+              </span>
             </div>
           </div>
 
@@ -143,6 +146,7 @@ import { createChatCompletion } from '@/services/openai'
 import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
 import { useDailyMeals } from '@/composables/useDailyMeals'
 import MealSummary from '@/components/MealSummary.vue'
+import { enhanceNutritionalData } from '@/services/usda'
 
 const mealDescription = ref('')
 const parsedMeal = ref(null)
@@ -184,9 +188,9 @@ const totalMacros = computed(() => {
   
   const totals = parsedMeal.value.ingredients.reduce((acc, ingredient, index) => {
     const multiplier = servingSizes.value[index] || 1
-    const protein = (parseInt(ingredient.macros.protein) || 0) * multiplier
-    const carbs = (parseInt(ingredient.macros.carbs) || 0) * multiplier
-    const fat = (parseInt(ingredient.macros.fat) || 0) * multiplier
+    const protein = (parseFloat(ingredient.macros.protein) || 0) * multiplier
+    const carbs = (parseFloat(ingredient.macros.carbs) || 0) * multiplier
+    const fat = (parseFloat(ingredient.macros.fat) || 0) * multiplier
     
     return {
       protein: acc.protein + protein,
@@ -242,6 +246,21 @@ const parseMeal = async () => {
     })
     
     const parsed = JSON.parse(response.content)
+    
+    // Enhance each ingredient with USDA data
+    const enhancedIngredients = await Promise.all(
+      parsed.ingredients.map(async (ingredient) => {
+        try {
+          const enhanced = await enhanceNutritionalData(ingredient)
+          return enhanced || ingredient // Fall back to original if enhancement fails
+        } catch (error) {
+          console.warn(`Failed to enhance ${ingredient.name} with USDA data:`, error)
+          return ingredient
+        }
+      })
+    )
+    
+    parsed.ingredients = enhancedIngredients
     parsedMeal.value = parsed
     initializeServingSizes(parsed.ingredients)
   } catch (error) {
@@ -260,9 +279,9 @@ const addToMeals = () => {
     ...ingredient,
     calories: Math.round(ingredient.calories * (servingSizes.value[index] || 1)),
     macros: {
-      protein: Math.round(parseInt(ingredient.macros.protein) * (servingSizes.value[index] || 1)),
-      carbs: Math.round(parseInt(ingredient.macros.carbs) * (servingSizes.value[index] || 1)),
-      fat: Math.round(parseInt(ingredient.macros.fat) * (servingSizes.value[index] || 1))
+      protein: Math.round(parseFloat(ingredient.macros.protein) * (servingSizes.value[index] || 1)).toString(),
+      carbs: Math.round(parseFloat(ingredient.macros.carbs) * (servingSizes.value[index] || 1)).toString(),
+      fat: Math.round(parseFloat(ingredient.macros.fat) * (servingSizes.value[index] || 1)).toString()
     }
   }))
   addToMeal(selectedMealCategory.value, itemsToAdd)
@@ -485,5 +504,14 @@ select {
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.data-source {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.data-source.USDA {
+  color: #28a745;
 }
 </style>
