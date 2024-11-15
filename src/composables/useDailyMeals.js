@@ -1,12 +1,20 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
-// Create a singleton store for meals
-const mealsStore = ref({
+// Initialize store with data from localStorage if available
+const initialMeals = JSON.parse(localStorage.getItem('dailyMeals')) || {
   breakfast: [],
   lunch: [],
   dinner: [],
   snacks: []
-})
+}
+
+// Create a singleton store for meals
+const mealsStore = ref(initialMeals)
+
+// Watch for changes and update localStorage
+watch(mealsStore, (newMeals) => {
+  localStorage.setItem('dailyMeals', JSON.stringify(newMeals))
+}, { deep: true })
 
 export const useDailyMeals = () => {
   const addToMeal = (category, items) => {
