@@ -2,7 +2,7 @@
   <div class="experiment-layout">
     <div class="main-content">
       <div class="experiment">
-        <h1>Experiment 002 - Meal Parser</h1>
+        <h1>Food Tracker</h1>
         
         <div class="input-section">
           <h2>Describe Your Meal</h2>

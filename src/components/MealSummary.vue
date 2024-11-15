@@ -16,9 +16,9 @@
       <div class="macro-details">
         <p>Calories: {{ totals.daily.calories }}</p>
         <div class="macros">
-          <span>P: {{ totals.daily.protein }}g</span>
-          <span>C: {{ totals.daily.carbs }}g</span>
-          <span>F: {{ totals.daily.fat }}g</span>
+          <div>Protein: <span>{{ totals.daily.protein }}g</span></div>
+          <div>Carbs: <span>{{ totals.daily.carbs }}g</span></div>
+          <div>Fat: <span>{{ totals.daily.fat }}g</span></div>
         </div>
       </div>
     </div>
@@ -45,11 +45,11 @@
 
         <div class="category-total">
           <div class="macro-details">
-            <p>Total: {{ totals.byMeal[category].calories }} cal</p>
+            <p>Calories: {{ totals.byMeal[category].calories }} cal</p>
             <div class="macros">
-              <span>P: {{ totals.byMeal[category].protein }}g</span>
-              <span>C: {{ totals.byMeal[category].carbs }}g</span>
-              <span>F: {{ totals.byMeal[category].fat }}g</span>
+              <div>Protein: <span>{{ totals.byMeal[category].protein }}g</span></div>
+              <div>Carbs: <span>{{ totals.byMeal[category].carbs }}g</span></div>
+              <div>Fat: <span>{{ totals.byMeal[category].fat }}g</span></div>
             </div>
           </div>
         </div>
@@ -92,7 +92,7 @@ const isToday = (dateStr) => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .meal-summary {
   width: 300px;
   padding: 20px;
@@ -111,6 +111,11 @@ const isToday = (dateStr) => {
   background: white;
   border-radius: 8px;
   border: 1px solid #ddd;
+
+  button {
+    cursor: pointer;
+  }
+
 }
 
 .current-date {
@@ -135,7 +140,11 @@ const isToday = (dateStr) => {
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 20px;
-  border: 2px solid #007bff;
+  border: 1px solid #ddd;
+
+  h3 {
+    margin: 0;
+  }
 }
 
 .meal-category {
@@ -147,6 +156,11 @@ const isToday = (dateStr) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+
+  h3 {
+    margin: 0;
+  }
+  
 }
 
 .meal-item {
@@ -161,6 +175,17 @@ const isToday = (dateStr) => {
 
 .item-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  font-weight: 600;
+}
+
+.item-portion {
+  font-size: 0.8em;
+  color: #666;
 }
 
 .item-macros {
