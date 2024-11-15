@@ -1,5 +1,16 @@
 <template>
   <div class="meal-summary">
+    <div class="date-navigation">
+      <button @click="goToPreviousDay">&larr;</button>
+      <div class="current-date">
+        <span>{{ formatDisplayDate(currentDate) }}</span>
+        <button class="today-btn" @click="goToToday" v-if="isToday(currentDate)">
+          Today
+        </button>
+      </div>
+      <button @click="goToNextDay">&rarr;</button>
+    </div>
+
     <div class="daily-total">
       <h3>Daily Totals</h3>
       <div class="macro-details">
@@ -49,12 +60,35 @@
 </template>
 
 <script setup>
-import { useDailyMeals } from '@/composables/useDailyMeals'
+import { useDailyMeals, formatDate } from '@/composables/useDailyMeals'
 
-const { meals, removeFromMeal, clearMeals, totals } = useDailyMeals()
+const { 
+  meals, 
+  removeFromMeal, 
+  clearMeals, 
+  totals, 
+  currentDate,
+  goToNextDay,
+  goToPreviousDay,
+  goToToday
+} = useDailyMeals()
 
 const formatCategory = (category) => {
   return category.charAt(0).toUpperCase() + category.slice(1)
+}
+
+const formatDisplayDate = (dateStr) => {
+  const date = new Date(dateStr + 'T12:00:00')
+  return new Intl.DateTimeFormat('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  }).format(date)
+}
+
+const isToday = (dateStr) => {
+  const today = formatDate(new Date())
+  return today === dateStr
 }
 </script>
 
@@ -66,6 +100,34 @@ const formatCategory = (category) => {
   border-left: 1px solid #ddd;
   height: 100vh;
   overflow-y: auto;
+}
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.current-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.today-btn {
+  padding: 2px 8px;
+  font-size: 0.8em;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .daily-total {
