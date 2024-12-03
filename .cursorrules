@@ -26,6 +26,11 @@ The application uses the USDA Food Data Central API to enhance ingredient nutrit
 1. Search and Match (searchFoodItem)
 - Cleans search terms and queries USDA database
 - Implements smart sorting to find best matches
+- Uses scoring system for result ranking:
+  * Prefers shorter descriptions
+  * Boosts raw/basic ingredients
+  * Penalizes processed/prepared items
+  * Weights exact matches and term coverage
 - Returns prioritized list of potential food matches
 
 2. Nutrient Data Fetching (getFoodDetails)
@@ -36,6 +41,7 @@ The application uses the USDA Food Data Central API to enhance ingredient nutrit
 - Coordinates the search and data fetching process
 - Maps USDA nutrients to application format
 - Applies portion calculations
+- Implements minimum score threshold for matches
 - Returns enhanced ingredient with standardized nutrition data
 
 4. Portion Calculations (getPortionMultiplier)
@@ -44,11 +50,12 @@ The application uses the USDA Food Data Central API to enhance ingredient nutrit
 - Standardizes portions relative to USDA's 100g baseline
 
 Key Features:
-- Intelligent food matching using term-based sorting
+- Intelligent food matching using weighted scoring system
 - Standardized nutrient mapping (calories, protein, carbs, fat)
 - Support for common measurement units (cups, tbsp, oz, etc.)
 - Portion size conversion and scaling
 - Extensive error handling and fallbacks
+- Match quality validation with score thresholds
 
 Usage:
 1. Initialize ingredient with name and assumed portion

@@ -6,16 +6,19 @@ export const searchFoodItem = async (query) => {
     return null
   }
 
-  // Clean up the query and add modifiers for better matching
+  // Clean and process the search term
   const searchTerm = query.toLowerCase()
-    .replace('with', '') // Remove 'with' to improve matching
+    .replace(/with|and|[,]/g, ' ') // Remove common connectors
+    .replace(/\s+/g, ' ') // Normalize spaces
     .trim()
 
+  const searchTerms = searchTerm.split(' ').filter(term => term.length > 1)
+  
   const params = new URLSearchParams({
     api_key: USDA_CONFIG.apiKey,
-    query: searchTerm,
-    dataType: ['Survey (FNDDS)'],
-    pageSize: 25  // Increase page size to get more potential matches
+    query: searchTerms.join(' AND '), // Use AND operator for more precise matching
+    dataType: ['Survey (FNDDS)', 'Foundation', 'SR Legacy'],
+    pageSize: 25
   })
 
   try {
@@ -25,23 +28,53 @@ export const searchFoodItem = async (query) => {
     }
     const data = await response.json()
     
-    // Try to find the best match from results
     if (data?.foods?.length) {
-      // Sort results to prioritize exact matches and raw ingredients
-      data.foods.sort((a, b) => {
-        const aDesc = a.description.toLowerCase()
-        const bDesc = b.description.toLowerCase()
-        const queryTerms = searchTerm.split(' ')
-        
+      // Score and sort results
+      const scoredResults = data.foods.map(food => {
+        const description = food.description.toLowerCase()
+        let score = 0
+
+        // Prefer shorter descriptions (usually indicates basic ingredients)
+        score += (1000 / description.length) * 10
+
+        // Prefer items without brand names
+        if (!food.brandOwner) score += 30
+
         // Prefer exact matches
-        const aExactMatch = queryTerms.every(term => aDesc.includes(term))
-        const bExactMatch = queryTerms.every(term => bDesc.includes(term))
-        
-        if (aExactMatch && !bExactMatch) return -1
-        if (!aExactMatch && bExactMatch) return 1
-        
-        return 0
+        if (description === searchTerm) score += 100
+
+        // Match individual terms
+        const matchedTerms = searchTerms.filter(term => description.includes(term))
+        score += (matchedTerms.length / searchTerms.length) * 50
+
+        // Penalize complex descriptions
+        const commaCount = (description.match(/,/g) || []).length
+        score -= commaCount * 10
+
+        // Penalize prepared/processed items
+        const penaltyTerms = ['prepared', 'processed', 'recipe', 'dish', 'product', 'restaurant']
+        penaltyTerms.forEach(term => {
+          if (description.includes(term)) score -= 20
+        })
+
+        // Boost raw/basic ingredients
+        const boostTerms = ['raw', 'fresh', 'plain', 'simple', 'basic']
+        boostTerms.forEach(term => {
+          if (description.includes(term)) score += 15
+        })
+
+        console.log(`Score for "${description}": ${score}`)
+        return { ...food, score }
       })
+
+      // Sort by score and update the foods array
+      data.foods = scoredResults.sort((a, b) => b.score - a.score)
+      
+      // Log top matches for debugging
+      console.log('Top 3 matches:', data.foods.slice(0, 3).map(f => ({
+        description: f.description,
+        score: f.score
+      })))
     }
     
     return data
@@ -82,8 +115,17 @@ export const enhanceNutritionalData = async (ingredient) => {
     
     if (!searchResults?.foods?.length) return ingredient
 
-    const usdaFood = searchResults.foods[0]
-    console.log('Matched USDA food:', usdaFood.description)
+    // Only use matches above a certain score threshold
+    const minimumScore = 30 // Adjust this threshold as needed
+    const bestMatch = searchResults.foods.find(food => food.score >= minimumScore)
+    
+    if (!bestMatch) {
+      console.log('No matches met the minimum score threshold')
+      return ingredient
+    }
+
+    const usdaFood = bestMatch
+    console.log('Matched USDA food:', usdaFood.description, 'Score:', usdaFood.score)
     
     const details = await getFoodDetails(usdaFood.fdcId)
     
